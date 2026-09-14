@@ -4,6 +4,17 @@ from app.main import app
 
 def run_tests():
     print("--- Starting Backend API Verification ---")
+    from app.database import SessionLocal
+    from app.models.user import User
+    from app.models.registration import Registration
+    db = SessionLocal()
+    db.query(Registration).filter(Registration.event_id == 'evt-3', Registration.user_email == 'zeenat@college.edu').delete()
+    u = db.query(User).filter(User.email == 'zeenat@college.edu').first()
+    if u:
+        u.status = 'Active'
+    db.commit()
+    db.close()
+
     with TestClient(app) as client:
         # 1. Root & Health
         res = client.get("/")
@@ -62,7 +73,7 @@ def run_tests():
 
         # 8. Event Booking / Registration Creation
         new_booking_payload = {
-            "eventId": "evt-2",
+            "eventId": "evt-3",
             "userName": "Zeenat",
             "userEmail": "zeenat@college.edu"
         }
@@ -100,6 +111,8 @@ def run_tests():
         user_id = users[0]["id"]
         res = client.patch(f"/api/users/{user_id}/status")
         assert res.status_code == 200
+        # Re-toggle back to Active so test suite remains idempotent
+        client.patch(f"/api/users/{user_id}/status")
         print("[PASS] Toggle User Status verified.")
 
         # 12. Attendee CSV Export
